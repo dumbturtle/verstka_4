@@ -14,15 +14,15 @@ def get_response_from_link(link: str) -> requests.models.Response:
     return tululu_response
 
 
-def parse_category_page(html: str) -> str:
+def parse_category_page(html: str) -> list:
     tululu_html_soup = BeautifulSoup(html, "lxml")
-    book_html_link = (
-        tululu_html_soup.find("body")
-        .find("div", id="content")
-        .find("table")
-        .find("a")["href"]
+    book_roster_html_links = (
+        tululu_html_soup.find("body").find("div", id="content").find_all("table")
     )
-    return book_html_link
+    book_roster_links = [
+        book_html_link.find("a")["href"] for book_html_link in book_roster_html_links
+    ]
+    return book_roster_links
 
 
 def join_website_with_book_html_link(website_link: str, book_html_link: str) -> str:
@@ -37,9 +37,12 @@ def main():
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
     tululu_category_link = "https://tululu.org/l55/"
     link_response = get_response_from_link(tululu_category_link)
-    book_html_link = parse_category_page(link_response.text)
-    book_link = join_website_with_book_html_link(tululu_category_link, book_html_link)
-    print(book_link)
+    book_roster_links = parse_category_page(link_response.text)
+    for book_roster_link in book_roster_links:
+        book_link = join_website_with_book_html_link(
+            tululu_category_link, book_roster_link
+        )
+        print(book_link)
 
 
 if __name__ == "__main__":
