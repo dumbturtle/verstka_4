@@ -131,4 +131,5 @@ dmypy.json
 
 /books
 /images
+/json
 setup.cfg
