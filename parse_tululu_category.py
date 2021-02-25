@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from pathlib import Path
@@ -7,6 +8,23 @@ import requests
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+
+def create_input_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--start_page",
+        type=int,
+        required=True,
+        help="Первая страница",
+    )
+    parser.add_argument(
+        "--end_page",
+        type=int,
+        default=702,
+        help="Последний страница",
+    )
+    return parser
 
 
 def get_response_from_link(link: str) -> requests.models.Response:
@@ -125,10 +143,9 @@ def get_book_roster_partial_link(
 
 def main():
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    input_parser = create_input_parser()
+    args = input_parser.parse_args()
     tululu_category_link = "https://tululu.org/l55/"
-    tululu_start_category_page = 1
-    tululu_end_category_page = 10
-    book_number_limit = 100
     book_folder = "books"
     cover_folder = "images"
     json_folder = "json"
@@ -140,12 +157,9 @@ def main():
     file_book_description_json_filepath = os.path.join(json_folder, json_filename)
     try:
         book_roster_partial_link = get_book_roster_partial_link(
-            tululu_category_link, tululu_start_category_page, tululu_end_category_page
+            tululu_category_link, args.start_page, args.end_page
         )
         for book_partial_link in book_roster_partial_link:
-            if len(book_description_json_draft) > book_number_limit:
-                print(len(book_description_json_draft))
-                break
             book_link = join_website_with_book_html_link(
                 tululu_category_link, book_partial_link
             )
