@@ -1,6 +1,5 @@
 import json
 import os
-import re
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
@@ -20,13 +19,12 @@ def get_response_from_link(link: str) -> requests.models.Response:
 
 def parse_category_page(html: str) -> list:
     html_soup = BeautifulSoup(html, "lxml")
-    book_roster_html_link = (
-        html_soup.find("body").find("div", id="content").find_all("table")
-    )
-    book_roster_link = [
-        book_html_link.find("a")["href"] for book_html_link in book_roster_html_link
+    book_partial_link_selector = "body div#content .d_book tr:nth-of-type(2) a"
+    book_roster_partial_link = [
+        book_partial_link["href"]
+        for book_partial_link in html_soup.select(book_partial_link_selector)
     ]
-    return book_roster_link
+    return book_roster_partial_link
 
 
 def join_website_with_book_html_link(website_link: str, book_html_link: str) -> str:
@@ -62,41 +60,34 @@ def extract_from_link_extension(link: str) -> str:
 def parse_book_page(html: str) -> dict:
     book_description = dict()
     html_soup = BeautifulSoup(html, "lxml")
-    book_text_html_link = (
-        html_soup.find("body")
-        .find("div", id="content")
-        .find("table", class_="d_book")
-        .find("a", title=re.compile(r"скачать книгу txt"))
+    book_text_partial_link_selector = (
+        "body div#content .d_book a[title$='скачать книгу txt']"
     )
-    if book_text_html_link:
-        title_tag = html_soup.find("body").find("div", id="content").find("h1")
-        book_cover_html_link = (
-            html_soup.find("body")
-            .find("div", class_="bookimage")
-            .find("img")["src"]
-        )
-        comment_tags = (
-            html_soup.find("body")
-            .find("div", id="content")
-            .find_all("div", class_="texts")
-        )
-        book_comments = [
-            comment.find("span", class_="black").text for comment in comment_tags
-        ]
-        genre_tags = (
-            html_soup.find("body")
-            .find("div", id="content")
-            .find("span", class_="d_book")
-            .find_all("a")
-        )
+    book_text_partial_link = html_soup.select_one(book_text_partial_link_selector)
+    if book_text_partial_link:
+        book_title_and_author_selector = "body div#content h1"
+        book_title_and_author = html_soup.select_one(book_title_and_author_selector)
+        book_title, book_author = book_title_and_author.text.split("::")
 
-        book_genres = [genre.text for genre in genre_tags]
-        book_title, book_author = title_tag.text.split("::")
+        book_cover_partial_link_selector = "body .bookimage img"
+        book_cover_partial_link = html_soup.select_one(book_cover_partial_link_selector)
+
+        book_comment_selector = "body div#content .texts .black"
+        book_comments = [
+            book_comment.text
+            for book_comment in html_soup.select(book_comment_selector)
+        ]
+
+        book_genre_selector = "body div#content span.d_book a"
+        book_genres = [
+            book_genre.text for book_genre in html_soup.select(book_genre_selector)
+        ]
+
         book_description = {
             "title": book_title.strip(),
             "author": book_author.strip(),
-            "img_src": book_cover_html_link,
-            "book_path": book_text_html_link["href"],
+            "img_src": book_cover_partial_link["src"],
+            "book_path": book_text_partial_link["href"],
             "genres": book_genres,
             "comments": book_comments,
         }
@@ -127,7 +118,7 @@ def get_book_roster_partial_link(
         category_page_link = urljoin(category_link, str(page))
         category_page_link_response = get_response_from_link(category_page_link)
         book_roster_partial_link = book_roster_partial_link + parse_category_page(
-            category_page_link_response.text
+            category_page_link_response.content
         )
     return book_roster_partial_link
 
@@ -159,7 +150,7 @@ def main():
                 tululu_category_link, book_partial_link
             )
             book_link_response = get_response_from_link(book_link)
-            book_description = parse_book_page(book_link_response.text)
+            book_description = parse_book_page(book_link_response.content)
             if "book_path" in book_description:
                 book_cover_link = join_website_with_book_html_link(
                     tululu_category_link, book_description["img_src"]
