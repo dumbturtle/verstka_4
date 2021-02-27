@@ -22,13 +22,13 @@ def create_input_parser():
         "--end_page",
         type=int,
         default=702,
-        help="Последний страница",
+        help="Последняя страница",
     )
     parser.add_argument(
         "--dest_folder",
         type=str,
         default=".",
-        help="Папка хранения оболожки, текста, json",
+        help="Папка хранения обложки, текста, json",
     )
     parser.add_argument(
         "--skip_imgs",
