@@ -50,28 +50,25 @@ def create_input_parser():
 
 
 def get_response_from_link(link: str) -> requests.models.Response:
-    tululu_response = requests.get(link, verify=False, allow_redirects=False)
-    tululu_response.raise_for_status()
-    if tululu_response.status_code == 302:
+    link_response = requests.get(link, verify=False, allow_redirects=False)
+    link_response.raise_for_status()
+    if link_response.status_code == 302:
         raise requests.exceptions.HTTPError
-    return tululu_response
+    return link_response
 
 
 def parse_category_page(html: str) -> list:
     html_soup = BeautifulSoup(html, "lxml")
-    book_partial_link_selector = "body div#content .d_book tr:nth-of-type(2) a"
-    book_roster_partial_link = [
-        book_partial_link["href"]
-        for book_partial_link in html_soup.select(book_partial_link_selector)
+    book_link_selector = "body div#content .d_book tr:nth-of-type(2) a"
+    book_short_links = [
+        book_link["href"] for book_link in html_soup.select(book_link_selector)
     ]
-    return book_roster_partial_link
+    return book_short_links
 
 
-def join_website_with_book_html_link(website_link: str, book_html_link: str) -> str:
+def get_full_link(website_link: str, short_link: str) -> str:
     split_link = urlsplit(website_link)
-    book_link = urljoin(
-        f"{ split_link.scheme }://{ split_link.netloc }", book_html_link
-    )
+    book_link = urljoin(f"{ split_link.scheme }://{ split_link.netloc }", short_link)
     return book_link
 
 
@@ -90,7 +87,7 @@ def write_file_json(data: list, filepath: str):
         json.dump(data, file, ensure_ascii=False, indent=4)
 
 
-def extract_from_link_extension(link: str) -> str:
+def extract_file_extension(link: str) -> str:
     split_link = urlsplit(link)
     split_link_unquote = unquote(split_link.path)
     file_extension = os.path.splitext(split_link_unquote)[1]
@@ -100,17 +97,15 @@ def extract_from_link_extension(link: str) -> str:
 def parse_book_page(html: str) -> dict:
     book_description = dict()
     html_soup = BeautifulSoup(html, "lxml")
-    book_text_partial_link_selector = (
-        "body div#content .d_book a[title$='скачать книгу txt']"
-    )
-    book_text_partial_link = html_soup.select_one(book_text_partial_link_selector)
-    if book_text_partial_link:
+    book_text_link_selector = "body div#content .d_book a[title$='скачать книгу txt']"
+    book_text_link = html_soup.select_one(book_text_link_selector)
+    if book_text_link:
         book_title_and_author_selector = "body div#content h1"
         book_title_and_author = html_soup.select_one(book_title_and_author_selector)
         book_title, book_author = book_title_and_author.text.split("::")
 
-        book_cover_partial_link_selector = "body .bookimage img"
-        book_cover_partial_link = html_soup.select_one(book_cover_partial_link_selector)
+        book_cover_link_selector = "body .bookimage img"
+        book_cover_link = html_soup.select_one(book_cover_link_selector)
 
         book_comment_selector = "body div#content .texts .black"
         book_comments = [
@@ -126,8 +121,8 @@ def parse_book_page(html: str) -> dict:
         book_description = {
             "title": book_title.strip(),
             "author": book_author.strip(),
-            "img_src_link": book_cover_partial_link["src"],
-            "book_path_link": book_text_partial_link["href"],
+            "img_src_link": book_cover_link["src"],
+            "book_path_link": book_text_link["href"],
             "genres": book_genres,
             "comments": book_comments,
         }
@@ -136,31 +131,31 @@ def parse_book_page(html: str) -> dict:
 
 def download_book_text(url: str, filename: str, folder: str) -> str:
     sanitized_filename = sanitize_filename(filename)
-    book_data = get_response_from_link(url)
-    full_filepath = f"{ os.path.join(folder, sanitized_filename) }.txt"
-    write_file_text(book_data.text, full_filepath)
-    return full_filepath
+    page_response = get_response_from_link(url)
+    filepath = f"{ os.path.join(folder, sanitized_filename) }.txt"
+    write_file_text(page_response.text, filepath)
+    return filepath
 
 
 def download_cover(url: str, filename: str, folder: str) -> str:
     sanitized_filename = sanitize_filename(filename)
-    cover_data = get_response_from_link(url)
-    full_filepath = os.path.join(folder, sanitized_filename)
-    write_file_cover(cover_data.content, full_filepath)
-    return full_filepath
+    page_response = get_response_from_link(url)
+    filepath = os.path.join(folder, sanitized_filename)
+    write_file_cover(page_response.content, filepath)
+    return filepath
 
 
-def get_book_roster_partial_link(
+def get_book_short_links(
     category_link: str, start_category_page: int, end_category_page: int
 ) -> list:
-    book_roster_partial_link = list()
+    book_short_links = list()
     for page in range(start_category_page, end_category_page):
         category_page_link = urljoin(category_link, str(page))
         category_page_link_response = get_response_from_link(category_page_link)
-        book_roster_partial_link = book_roster_partial_link + parse_category_page(
+        book_short_links = book_short_links + parse_category_page(
             category_page_link_response.content
         )
-    return book_roster_partial_link
+    return book_short_links
 
 
 def main():
@@ -172,27 +167,25 @@ def main():
     cover_folder = sanitize_filepath(f"{ args.dest_folder }/images")
     json_folder = sanitize_filepath(f"{ args.dest_folder }/{ args.json_path }")
     json_filename = "book_desc.json"
-    book_description_json_draft = list()
+    book_description_json = list()
     Path(book_folder).mkdir(parents=True, exist_ok=True)
     Path(cover_folder).mkdir(parents=True, exist_ok=True)
     Path(json_folder).mkdir(parents=True, exist_ok=True)
-    file_book_description_json_filepath = os.path.join(json_folder, json_filename)
+    book_description_filepath = os.path.join(json_folder, json_filename)
     try:
-        book_roster_partial_link = get_book_roster_partial_link(
+        book_short_links = get_book_short_links(
             tululu_category_link, args.start_page, args.end_page
         )
-        for book_partial_link in book_roster_partial_link:
-            book_link = join_website_with_book_html_link(
-                tululu_category_link, book_partial_link
-            )
+        for book_short_link in book_short_links:
+            book_link = get_full_link(tululu_category_link, book_short_link)
             book_link_response = get_response_from_link(book_link)
             book_description = parse_book_page(book_link_response.content)
             if "book_path_link" in book_description:
                 if not args.skip_imgs:
-                    book_cover_link = join_website_with_book_html_link(
+                    book_cover_link = get_full_link(
                         tululu_category_link, book_description["img_src_link"]
                     )
-                    book_cover_extension = extract_from_link_extension(book_cover_link)
+                    book_cover_extension = extract_file_extension(book_cover_link)
                     book_cover_filename = (
                         f"{ book_description['title'] }{ book_cover_extension }"
                     )
@@ -200,7 +193,7 @@ def main():
                         book_cover_link, book_cover_filename, cover_folder
                     )
                 if not args.skip_txt:
-                    book_text_link = join_website_with_book_html_link(
+                    book_text_link = get_full_link(
                         tululu_category_link, book_description["book_path_link"]
                     )
                     book_text_filename = book_description["title"]
@@ -209,10 +202,8 @@ def main():
                     )
                 book_description.pop("img_src_link", None)
                 book_description.pop("book_path_link", None)
-                book_description_json_draft.append(book_description)
-        write_file_json(
-            book_description_json_draft, file_book_description_json_filepath
-        )
+                book_description_json.append(book_description)
+        write_file_json(book_description_json, book_description_filepath)
     except requests.exceptions.ConnectionError:
         print("Что-то пошло не так:( Проверьте подключение к интернету!")
     except requests.exceptions.HTTPError:
