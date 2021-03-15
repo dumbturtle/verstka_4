@@ -45,6 +45,12 @@ def create_input_parser():
         default="json",
         help="Указать путь до файла описания",
     )
+    parser.add_argument(
+        "--json_filename",
+        type=str,
+        default="book_desc.json",
+        help="Указать имя файла описания c расширение .json",
+    )
     return parser
 
 
@@ -171,10 +177,10 @@ def main():
     input_parser = create_input_parser()
     args = input_parser.parse_args()
     tululu_category_link = "https://tululu.org/l55/"
-    book_folder = sanitize_filepath(f"{ args.dest_folder }/books")
-    cover_folder = sanitize_filepath(f"{ args.dest_folder }/images")
-    json_folder = sanitize_filepath(f"{ args.dest_folder }/{ args.json_path }")
-    json_filename = "book_desc.json"
+    book_folder = sanitize_filepath(os.path.join(args.dest_folder, "books"))
+    cover_folder = sanitize_filepath(os.path.join(args.dest_folder, "images"))
+    json_folder = sanitize_filepath(os.path.join(args.dest_folder, args.json_path))
+    json_filename = sanitize_filename(args.json_filename)
     book_description_json = []
     Path(book_folder).mkdir(parents=True, exist_ok=True)
     Path(cover_folder).mkdir(parents=True, exist_ok=True)
