@@ -78,11 +78,6 @@ def get_full_link(website_link: str, short_link: str) -> str:
     return book_link
 
 
-def write_file_json(data: list, filepath: str):
-    with open(filepath, "a") as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
-
-
 def extract_file_extension(link: str) -> str:
     split_link = urlsplit(link)
     split_link_unquote = unquote(split_link.path)
@@ -222,7 +217,8 @@ def main():
             requests.exceptions.HTTPError,
         ) as error:
             print(f"Произошла ошибка: { error }")
-    write_file_json(book_description_json, book_description_filepath)
+    with open(book_description_filepath, "a") as file:
+        json.dump(book_description_json, file, ensure_ascii=False, indent=4)
 
 
 if __name__ == "__main__":
