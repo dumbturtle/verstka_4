@@ -40,16 +40,10 @@ def create_input_parser():
         help="Отключить скачивание текста",
     )
     parser.add_argument(
-        "--json_path",
+        "--json_filepath",
         type=str,
-        default="json",
-        help="Указать путь до файла описания",
-    )
-    parser.add_argument(
-        "--json_filename",
-        type=str,
-        default="book_desc.json",
-        help="Указать имя файла описания c расширение .json",
+        default="json/book_desc.json",
+        help="Указать имя и путь до файла описания",
     )
     return parser
 
@@ -174,24 +168,15 @@ def main():
     tululu_category_link = "https://tululu.org/l55/"
     book_folder = sanitize_filepath(os.path.join(args.dest_folder, "books"))
     cover_folder = sanitize_filepath(os.path.join(args.dest_folder, "images"))
-    json_folder = sanitize_filepath(os.path.join(args.dest_folder, args.json_path))
-    json_filename = sanitize_filename(args.json_filename)
+    book_description_filepath = sanitize_filepath(args.json_filepath)
     book_description_json = []
     Path(book_folder).mkdir(parents=True, exist_ok=True)
     Path(cover_folder).mkdir(parents=True, exist_ok=True)
-    Path(json_folder).mkdir(parents=True, exist_ok=True)
-    book_description_filepath = os.path.join(json_folder, json_filename)
-    try:
-        if not args.last_page:
-            args.last_page = fetch_category_last_page(tululu_category_link)
-        book_links = get_book_links(
-            tululu_category_link, args.start_page, args.last_page
-        )
-    except (
-        requests.exceptions.ConnectionError,
-        requests.exceptions.HTTPError,
-    ) as error:
-        print(f"Произошла ошибка: { error }")
+    filepath, filename = os.path.split(book_description_filepath)
+    Path(filepath).mkdir(parents=True, exist_ok=True)
+    if not args.last_page:
+        args.last_page = fetch_category_last_page(tululu_category_link)
+    book_links = get_book_links(tululu_category_link, args.start_page, args.last_page)
     for book_link in book_links:
         try:
             response = fetch_response(book_link)
@@ -215,8 +200,8 @@ def main():
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.HTTPError,
-        ) as error:
-            print(f"Произошла ошибка: { error }")
+        ):
+            continue
     with open(book_description_filepath, "a") as file:
         json.dump(book_description_json, file, ensure_ascii=False, indent=4)
 
