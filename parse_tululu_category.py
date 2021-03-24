@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
@@ -179,13 +180,27 @@ def main():
     Path(filepath).mkdir(parents=True, exist_ok=True)
     if not args.last_page:
         args.last_page = fetch_category_last_page(tululu_category_link)
-    book_links = get_book_links(tululu_category_link, args.start_page, args.last_page)
+    try:
+        book_links = get_book_links(
+            tululu_category_link, args.start_page, args.last_page
+        )
+    except (
+        requests.exceptions.ConnectionError,
+        requests.exceptions.HTTPError,
+    ):
+        print(
+            "При получении списка книг возникла ошибка! Проверь соединение с интернетом."
+        )
+        sys.exit()
     for index, book_link in enumerate(book_links):
         try:
             response = fetch_response(book_link)
             html_soup = BeautifulSoup(response.content, "lxml")
             text_link = fetch_book_text_link(html_soup)
             if not text_link:
+                print(
+                    f"У книги по сслыке: { book_link } нет текстового файла! Пропускаем!"
+                )
                 continue
             book_description = parse_book_page(html_soup)
             if not args.skip_imgs:
@@ -202,7 +217,10 @@ def main():
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.HTTPError,
-        ):
+        ) as error:
+            print(
+                f"При скачивании книги по сслыке: { book_link } возникла ошибка: { error }! Пропускаем!"
+            )
             continue
     with open(book_description_filepath, "a") as file:
         json.dump(book_descriptions, file, ensure_ascii=False, indent=4)
