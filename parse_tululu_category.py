@@ -56,7 +56,7 @@ def fetch_response(link: str) -> requests.models.Response:
     return link_response
 
 
-def parse_category_page(html: str, website_link: str) -> list:
+def parse_category_page(html: bytes, website_link: str) -> list:
     html_soup = BeautifulSoup(html, "lxml")
     book_link_selector = "body div#content .d_book tr:nth-of-type(2) a"
     book_links = [
@@ -119,7 +119,7 @@ def parse_book_page(html: str) -> dict:
 
 
 def download_book_text(
-    category_link: str, text_link: dict, folder: str, filename: str
+    category_link: str, text_link: str, folder: str, filename: str
 ) -> str:
     book_text_link = get_full_link(category_link, text_link)
     sanitized_filename = sanitize_filename(filename)
