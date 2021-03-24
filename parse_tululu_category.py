@@ -67,15 +67,17 @@ def parse_category_page(html: str, website_link: str) -> list:
 
 
 def get_full_link(website_link: str, short_link: str) -> str:
-    split_link = urlsplit(website_link)
-    book_link = urljoin(f"{ split_link.scheme }://{ split_link.netloc }", short_link)
+    separated_link = urlsplit(website_link)
+    book_link = urljoin(
+        f"{ separated_link.scheme }://{ separated_link.netloc }", short_link
+    )
     return book_link
 
 
 def extract_file_extension(link: str) -> str:
-    split_link = urlsplit(link)
-    split_link_unquote = unquote(split_link.path)
-    file_extension = os.path.splitext(split_link_unquote)[1]
+    separated_link = urlsplit(link)
+    separated_link_unquote = unquote(separated_link.path)
+    file_extension = os.path.splitext(separated_link_unquote)[1]
     return file_extension
 
 
