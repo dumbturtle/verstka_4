@@ -116,9 +116,9 @@ def parse_book_page(html_soup: BeautifulSoup) -> dict:
 
 
 def download_book_text(
-    category_link: str, text_link: str, folder: str, filename: str
+    book_link: str, text_link: str, folder: str, filename: str
 ) -> str:
-    book_text_link = get_full_link(category_link, text_link)
+    book_text_link = get_full_link(book_link, text_link)
     sanitized_filename = sanitize_filename(filename)
     response = fetch_response(book_text_link)
     filepath = f"{ os.path.join(folder, sanitized_filename) }.txt"
@@ -127,8 +127,8 @@ def download_book_text(
     return filepath
 
 
-def download_cover(category_link: str, book_description: dict, folder: str) -> str:
-    book_cover_link = get_full_link(category_link, book_description["img_src_link"])
+def download_cover(book_link: str, book_description: dict, folder: str) -> str:
+    book_cover_link = get_full_link(book_link, book_description["img_src_link"])
     book_cover_extension = extract_file_extension(book_cover_link)
     book_cover_filename = f"{ book_description['title'] }{ book_cover_extension }"
     response = fetch_response(book_cover_link)
@@ -186,11 +186,11 @@ def main():
             book_description = parse_book_page(html_soup)
             if not args.skip_imgs:
                 book_description["img_src"] = download_cover(
-                    tululu_category_link, book_description, cover_folder
+                    book_link, book_description, cover_folder
                 )
             if not args.skip_txt:
                 book_description["book_path"] = download_book_text(
-                    tululu_category_link,
+                    book_link,
                     text_link["href"],
                     book_folder,
                     book_description["title"],
