@@ -172,7 +172,7 @@ def main():
     book_folder = sanitize_filepath(os.path.join(args.dest_folder, "books"))
     cover_folder = sanitize_filepath(os.path.join(args.dest_folder, "images"))
     book_description_filepath = sanitize_filepath(args.json_filepath)
-    book_description_json = []
+    book_descriptions = []
     Path(book_folder).mkdir(parents=True, exist_ok=True)
     Path(cover_folder).mkdir(parents=True, exist_ok=True)
     filepath, filename = os.path.split(book_description_filepath)
@@ -198,14 +198,14 @@ def main():
                     book_link, text_link["href"], book_folder, book_title
                 )
             book_description.pop("img_src_link", None)
-            book_description_json.append(book_description)
+            book_descriptions.append(book_description)
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.HTTPError,
         ):
             continue
     with open(book_description_filepath, "a") as file:
-        json.dump(book_description_json, file, ensure_ascii=False, indent=4)
+        json.dump(book_descriptions, file, ensure_ascii=False, indent=4)
 
 
 if __name__ == "__main__":
