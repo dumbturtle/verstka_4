@@ -81,16 +81,13 @@ def extract_file_extension(link: str) -> str:
     return file_extension
 
 
-def fetch_book_text_link(html: str) -> str:
-    html_soup = BeautifulSoup(html, "lxml")
+def fetch_book_text_link(html_soup: BeautifulSoup) -> str:
     book_text_link_selector = "body div#content .d_book a[title$='скачать книгу txt']"
     book_text_link = html_soup.select_one(book_text_link_selector)
     return book_text_link
 
 
-def parse_book_page(html: str) -> dict:
-    book_description = {}
-    html_soup = BeautifulSoup(html, "lxml")
+def parse_book_page(html_soup: BeautifulSoup) -> dict:
     book_title_and_author_selector = "body div#content h1"
     book_title_and_author = html_soup.select_one(book_title_and_author_selector)
     book_title, book_author = book_title_and_author.text.split("::")
@@ -182,10 +179,11 @@ def main():
     for book_link in book_links:
         try:
             response = fetch_response(book_link)
-            text_link = fetch_book_text_link(response.content)
+            html_soup = BeautifulSoup(response.content, "lxml")
+            text_link = fetch_book_text_link(html_soup)
             if not text_link:
                 continue
-            book_description = parse_book_page(response.content)
+            book_description = parse_book_page(html_soup)
             if not args.skip_imgs:
                 book_description["img_src"] = download_cover(
                     tululu_category_link, book_description, cover_folder
@@ -199,6 +197,7 @@ def main():
                 )
             book_description.pop("img_src_link", None)
             book_description_json.append(book_description)
+            break
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.HTTPError,
