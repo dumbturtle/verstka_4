@@ -127,10 +127,14 @@ def download_book_text(
     return filepath
 
 
-def download_cover(book_link: str, book_description: dict, folder: str) -> str:
+def download_cover(
+    book_link: str, book_description: dict, folder: str, filename_index: int
+) -> str:
     book_cover_link = get_full_link(book_link, book_description["img_src_link"])
     book_cover_extension = extract_file_extension(book_cover_link)
-    book_cover_filename = f"{ book_description['title'] }{ book_cover_extension }"
+    book_cover_filename = (
+        f"{ filename_index }_{ book_description['title'] }{ book_cover_extension }"
+    )
     response = fetch_response(book_cover_link)
     sanitized_filename = sanitize_filename(book_cover_filename)
     filepath = os.path.join(folder, sanitized_filename)
@@ -176,7 +180,7 @@ def main():
     if not args.last_page:
         args.last_page = fetch_category_last_page(tululu_category_link)
     book_links = get_book_links(tululu_category_link, args.start_page, args.last_page)
-    for book_link in book_links:
+    for index, book_link in enumerate(book_links):
         try:
             response = fetch_response(book_link)
             html_soup = BeautifulSoup(response.content, "lxml")
@@ -186,18 +190,15 @@ def main():
             book_description = parse_book_page(html_soup)
             if not args.skip_imgs:
                 book_description["img_src"] = download_cover(
-                    book_link, book_description, cover_folder
+                    book_link, book_description, cover_folder, index
                 )
             if not args.skip_txt:
+                book_title = f"{ index }_{ book_description['title'] }"
                 book_description["book_path"] = download_book_text(
-                    book_link,
-                    text_link["href"],
-                    book_folder,
-                    book_description["title"],
+                    book_link, text_link["href"], book_folder, book_title
                 )
             book_description.pop("img_src_link", None)
             book_description_json.append(book_description)
-            break
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.HTTPError,
