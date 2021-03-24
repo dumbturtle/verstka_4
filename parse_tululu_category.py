@@ -76,8 +76,8 @@ def get_full_link(website_link: str, short_link: str) -> str:
 
 def extract_file_extension(link: str) -> str:
     separated_link = urlsplit(link)
-    separated_link_unquote = unquote(separated_link.path)
-    file_extension = os.path.splitext(separated_link_unquote)[1]
+    unquoted_separated_link = unquote(separated_link.path)
+    file_extension = os.path.splitext(unquoted_separated_link)[1]
     return file_extension
 
 
