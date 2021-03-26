@@ -47,11 +47,7 @@ $ python parse_tululu_category.py --start_page 10
 ```
 --dest_folder
 ```
-Указать папку, в которую поместить файл с описанием книг в формате json.По умолчанию: `json`.
+Указать папку и имя файла для описания книги в формате json.По умолчанию: `json/book_desc.json`.
 ```
---json_path
-```
-Указать имя файл с описанием книг в формате json.По умолчанию: `book_desc.json`
-```
---json_filename
+--json_filepath
 ```
